@@ -11,8 +11,8 @@ const BRANCH_CJUMP = 8; // stem color jump offset
 const RED_COLORS = [ "#000000", "#1A0000", "#330000", "#4D0000", "#660000", "#800000", "#990000", "#B30000", "#CC0000", "#E60000", "#FF0000", "#FF1A1A", "#FF3333", "#FF4D4D", "#FF6666", "#FF8080", "#FF9999", "#FFB3B3", "#FFCCCC", "#FFE6E6", "#FFFFFF", "#FFE6E6", "#FFCCCC", "#FFB3B3", "#FF9999", "#FF8080", "#FF6666", "#FF4D4D", "#FF3333", "#FF1A1A", "#FF0000", "#E60000", "#CC0000", "#B30000", "#990000", "#800000", "#660000", "#4D0000", "#330000", "#1A0000", "#000000" ];
 var RED_LENGTH = RED_COLORS.length;
 
-var defaultWidth = 200;
-var defaultHeight = 200;
+var defaultWidth = 250;
+var defaultHeight = 250;
 
 class Genes {
    constructor(all_characteristics) {
@@ -22,9 +22,6 @@ class Genes {
    reproduce(mutation) {
       var child = new Genes(this.Characteristics);
       child.Characteristics[mutation] += Genes.mutateNow();
-
-      console.log("Gene successfully reproduced");
-      console.log(child.Characteristics);
       return child;
    }
 
@@ -51,8 +48,7 @@ class Genes {
       return this.Characteristics.join("_");
    }
 
-   static mutateNow() {
-      // slight bias towards positive numbers
+   static mutateNow() { // slight bias towards positive numbers
       return Math.random() * 64 > 30 ? 1 : -1;
    }
 
@@ -64,7 +60,6 @@ class Genes {
             console.error("Wrong number of Characteristics in Gene");
             console.error("Gene Description: " + description);
             console.error("==> Found " + newCharacteristics.length + " Characteristics");
-            console.error(new Error().stack);
             console.error("...resorting to default");
             newCharacteristics = [];
          }
@@ -81,7 +76,7 @@ function main() {
 
    if (results) {
       let parentGene = Genes.generateFromString(decodeURIComponent(results));
-      let ctx = setupContext("child_0", parentGene.toString());
+      let ctx = setupContext("child_0", parentGene.toString(), 3);
       if (!ctx) return;
 
       drawBioMorph(ctx, parentGene);
@@ -94,14 +89,14 @@ function main() {
    var numCharacteristics = parentGene.Characteristics.length;
    for (let i = 0; i < numCharacteristics; ++i) {
       let child = parentGene.reproduce(i);
-      let ctx = setupContext("child_" + i, child.toString());
+      let ctx = setupContext("child_" + i, child.toString(), 1);
       if (!ctx) return;
 
       drawBioMorph(ctx, child);
    }
 }
 
-function setupContext(id, description) {
+function setupContext(id, description, factor) {
    let a_ref = document.getElementById(id);
    a_ref.href = "?x=" + description;
 
@@ -109,11 +104,12 @@ function setupContext(id, description) {
 
    if (!canvas.getContext) return null;
 
-   canvas.width = defaultWidth;
-   canvas.height = defaultHeight;
+   canvas.width = defaultWidth * factor;
+   canvas.height = defaultHeight * factor;
 
    let ctx = canvas.getContext("2d");
    ctx.globalCompositeOperation = "lighter";
+   ctx.translate(canvas.width / 2, canvas.height / 2);
 
    return ctx;
 }
@@ -122,7 +118,6 @@ function drawBioMorph(ctx, gene) {
    console.log("gene.Characteristics:" + gene.Characteristics);
 
    ctx.beginPath();
-   ctx.translate(defaultWidth / 2, defaultHeight / 2);
    ctx.fillStyle = "#000000";
    ctx.strokeStyle = "#000000";
    ctx.arc(0, 0, 1, 0, Math.PI * 2, true);
