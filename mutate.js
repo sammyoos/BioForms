@@ -172,35 +172,32 @@ function drawBioMorph(ctx, gene) {
          x0 = x_cache[ pCache ]
          y0 = y_cache[ pCache ]
 
-         cAngle = a_cache[ pCache ] + branchDelta;
-         // window.requestAnimationFrame( drawStem );
-         drawStem();
+         for( let leftRight = -1; leftRight <= 1; leftRight += 2 ) {
+            let cAngle = a_cache[ pCache ] + leftRight * branchDelta;
+            let x1 = x0 + stemLength * Math.cos( cAngle )
+            let y1 = y0 + stemLength * Math.sin( cAngle )
+            a_cache[ cCache ] = cAngle;
 
-         cAngle = a_cache[ pCache ] - branchDelta;
-         // window.requestAnimationFrame( drawStem );
-         drawStem();
+            // var b = function( timestamp ) {
+            window.requestAnimationFrame( function( timestamp ) {
+               console.log( "animationFrame: interation=" + iter + ", branch=" + branch )
+               console.log( "(x0,y0) to (x1,y1) = (" + x0 + "," + y0 + ") to (" + x1 + "," + y1 + ")" )
+
+               ctx.beginPath();
+               ctx.strokeStyle = RED_COLORS[stemColor];
+               ctx.moveTo( x0, y0 );
+               ctx.lineTo( x1, y1 );
+               ctx.stroke();
+            });
+
+            x_cache[ cCache ] = x1;
+            y_cache[ cCache ] = y1;
+            cCache -= 1;
+         }
 
          pCache -= 1;
       }
       return;
-
-      function drawStem( timestamp ) {
-         let x1 = x0 + stemLength * Math.cos( cAngle )
-         let y1 = y0 + stemLength * Math.sin( cAngle )
-         a_cache[ cCache ] = cAngle;
-
-         console.log( "(x0,y0) to (x1,y1) = (" + x0 + "," + y0 + ") to (" + x1 + "," + y1 + ")" )
-
-         ctx.beginPath();
-         ctx.strokeStyle = RED_COLORS[stemColor];
-         ctx.moveTo( x0, y0 );
-         ctx.lineTo( x1, y1 );
-         ctx.stroke();
-
-         x_cache[ cCache ] = x1;
-         y_cache[ cCache ] = y1;
-         cCache -= 1;
-      }
    }
 }
 // vim: set et sw=3 ts=3:
