@@ -1,4 +1,4 @@
-const INTERATIONS = 0; // how many iterations of detail to add
+const ITERATIONS = 0; // how many iterations of detail to add
 const STEM_LENGTH = 1; // stem base length
 const STEM_RATIO = 2; // stem length ratio from previous interation
 const STEM_ABSOLUTE = 3; // stem length absolute difference from previous interation
@@ -15,37 +15,38 @@ const DEFAULT_WIDTH = 250;
 const DEFAULT_HEIGHT = 250;
 
 class Genes {
-   constructor(all_characteristics) {
-      this.Characteristics = all_characteristics.slice();
+   constructor(allTraits) {
+      this.Traits = allTraits.slice();
+      if( this.Traits[ITERATIONS] < 0 ) this.Traits[ITERATIONS] = 1;
    }
 
    reproduce(mutation) {
-      var child = new Genes(this.Characteristics);
-      child.Characteristics[mutation] += Genes.mutateNow();
+      var child = new Genes(this.Traits);
+      child.Traits[mutation] += Genes.mutateNow();
       return child;
    }
 
    updateStem(length) {
-      length += this.Characteristics[STEM_ABSOLUTE];
-      length *= 1 + this.Characteristics[STEM_RATIO] / 10;
+      length += this.Traits[STEM_ABSOLUTE];
+      length *= 1 + this.Traits[STEM_RATIO] / 10;
       return length;
    }
 
    updateRotation(rotation) {
-      rotation += this.Characteristics[BRANCH_ANGLE] / 100;
-      rotation *= 1 + this.Characteristics[BRANCH_RATIO] / 100;
+      rotation += this.Traits[BRANCH_ANGLE] / 100;
+      rotation *= 1 + this.Traits[BRANCH_RATIO] / 100;
       return rotation;
    }
 
    updateColor(color) {
-      color += this.Characteristics[BRANCH_CJUMP];
+      color += this.Traits[BRANCH_CJUMP];
       if (color < 0) color += RED_LENGTH;
       if (color >= RED_LENGTH) color %= RED_LENGTH;
       return color;
    }
 
    toString() {
-      return this.Characteristics.join("_");
+      return this.Traits.join("_");
    }
 
    static mutateNow() { // slight bias towards positive numbers
@@ -58,9 +59,9 @@ class Genes {
          newCharacteristics = description.split("_").map(x => parseInt(x));
          if (newCharacteristics.length == 9) return new Genes(newCharacteristics);
 
-         console.error("Wrong number of Characteristics in Gene");
+         console.error("Wrong number of Traits in Gene");
          console.error("Gene Description: " + description);
-         console.error("==> Found " + newCharacteristics.length + " Characteristics");
+         console.error("==> Found " + newCharacteristics.length + " Traits");
          console.error("...resorting to default");
       }
 
@@ -77,6 +78,10 @@ function main() {
       let ctx = setupContext("child_0", parentGene.toString(), 3);
       if (!ctx) return;
 
+      let divs = document.getElementsByClassName( "alt" );
+      for( let d=0; d<divs.length; ++d ) 
+         divs[d].style.display = "none";
+
       drawBioMorph(ctx, parentGene);
       return;
    }
@@ -84,7 +89,7 @@ function main() {
    results = url.searchParams.get("x");
    let parentGene = Genes.generateFromString(decodeURIComponent(results));
 
-   var numCharacteristics = parentGene.Characteristics.length;
+   var numCharacteristics = parentGene.Traits.length;
    for (let i = 0; i < numCharacteristics; ++i) {
       let child = parentGene.reproduce(i);
       let ctx = setupContext("child_" + i, child.toString(), 1);
@@ -112,15 +117,7 @@ function setupContext(id, description, factor) {
 }
 
 function drawBioMorph(ctx, gene) {
-   console.log("gene.Characteristics:" + gene.Characteristics);
-
-   ctx.beginPath();
-   ctx.fillStyle = "#000000";
-   ctx.strokeStyle = "#000000";
-   ctx.arc(0, 0, 1, 0, Math.PI * 2, true);
-   ctx.stroke();
-
-   let totalIterations = gene.Characteristics[INTERATIONS];
+   let totalIterations = gene.Traits[ITERATIONS];
    if (totalIterations <= 0) return; 
 
    // cache the angle, x, and y locations of each endpoint
@@ -138,17 +135,16 @@ function drawBioMorph(ctx, gene) {
    let szCache = 2; // size of the virtual cache
    let iter = 0;
 
-   let stemLength = gene.Characteristics[STEM_LENGTH] + 3;
+   let stemLength = gene.Traits[STEM_LENGTH] + 3;
    let branchDelta = Math.PI / 3;
-   let stemColor = gene.Characteristics[BRANCH_COLOR];
+   let stemColor = gene.Traits[BRANCH_COLOR];
 
-   a_cache[0] = 0.0;
-   x_cache[0] = DEFAULT_WIDTH / 2;
-   y_cache[0] = DEFAULT_HEIGHT / 2;
+   a_cache[0] = Math.PI / 5;
+   x_cache[0] = ctx.canvas.width / 2;
+   y_cache[0] = ctx.canvas.height / 2;
 
    // base iteration draws the original circle
    for( ;; ) {
-      console.log( "Generation: " + iter );
       drawIteration();
       if( ++iter>=totalIterations ) break;
 
@@ -164,11 +160,9 @@ function drawBioMorph(ctx, gene) {
    return;
 
    function drawIteration() {
-      // console.log( "drawIteration: gen("+gen+"), len("+len+"), rot("+rot+")" )
       let x0, y0;
 
       for( let branch=pCache; branch >= 0; --branch ) {
-         console.log( "drawIteration: interation=" + iter + ", branch=" + branch )
          x0 = x_cache[ pCache ]
          y0 = y_cache[ pCache ]
 
@@ -178,8 +172,8 @@ function drawBioMorph(ctx, gene) {
             let y1 = y0 + stemLength * Math.sin( cAngle )
             a_cache[ cCache ] = cAngle;
 
-            window.requestAnimationFrame( 
-               drawGenerator( ctx, x0, y0, x1, y1, stemColor ));
+            // window.requestAnimationFrame( drawGenerator( ctx, x0, y0, x1, y1, stemColor ));
+            setTimeout( drawGenerator( ctx, x0, y0, x1, y1, stemColor ), 10 );
 
             x_cache[ cCache ] = x1;
             y_cache[ cCache ] = y1;
@@ -194,14 +188,10 @@ function drawBioMorph(ctx, gene) {
 
 function drawGenerator( ctx, x0, y0, x1, y1, stemColor ) {
    return( function( timestamp ) {
-      console.log( "drawGenerator: color="+stemColor );
-      // console.log( "(x0,y0) to (x1,y1) = (" + x0 + "," + y0 + ") to (" + x1 + "," + y1 + ")" )
-
       ctx.strokeStyle = RED_COLORS[stemColor];
       ctx.beginPath();
       ctx.moveTo( x0, y0 );
       ctx.lineTo( x1, y1 );
-      // ctx.closePath();
       ctx.stroke();
    });
 }
