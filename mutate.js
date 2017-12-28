@@ -38,6 +38,11 @@ class Genes {
       return rotation;
    }
 
+   updateOffset(offset) {
+      offset += this.Traits[BRANCH_OFFSET];
+      return offset;
+   }
+
    updateColor(color) {
       color += this.Traits[BRANCH_CJUMP];
       if (color < 0) color += RED_LENGTH;
@@ -78,6 +83,7 @@ function main() {
       let ctx = setupContext("child_0", parentGene.toString(), 3);
       if (!ctx) return;
 
+      document.getElementById( "child_0_exp" ).style.display = "none";
       let divs = document.getElementsByClassName( "alt" );
       for( let d=0; d<divs.length; ++d ) 
          divs[d].style.display = "none";
@@ -100,6 +106,8 @@ function main() {
 }
 
 function setupContext(id, description, factor) {
+   document.getElementById(id+"_exp").href = "?y=" + description;
+
    let a_ref = document.getElementById(id);
    a_ref.href = "?x=" + description;
 
@@ -137,6 +145,7 @@ function drawBioMorph(ctx, gene) {
 
    let stemLength = gene.Traits[STEM_LENGTH] + 3;
    let branchDelta = Math.PI / 3;
+   let branchOffset = gene.Traits[BRANCH_OFFSET];
    let stemColor = gene.Traits[BRANCH_COLOR];
 
    a_cache[0] = Math.PI / 5;
@@ -150,6 +159,7 @@ function drawBioMorph(ctx, gene) {
 
       stemLength = gene.updateStem(stemLength);
       branchDelta = gene.updateRotation(branchDelta);
+      branchOffset = gene.updateOffset(branchOffset);
       stemColor = gene.updateColor(stemColor);
 
       pCache = szCache - 1;  // set to midpoint of next cache size
@@ -172,8 +182,8 @@ function drawBioMorph(ctx, gene) {
             let y1 = y0 + stemLength * Math.sin( cAngle )
             a_cache[ cCache ] = cAngle;
 
-            // window.requestAnimationFrame( drawGenerator( ctx, x0, y0, x1, y1, stemColor ));
-            setTimeout( drawGenerator( ctx, x0, y0, x1, y1, stemColor ), 10 );
+            window.requestAnimationFrame( drawGenerator( ctx, x0, y0, x1, y1, stemColor ));
+            // setTimeout( drawGenerator( ctx, x0, y0, x1, y1, stemColor ), 10 );
 
             x_cache[ cCache ] = x1;
             y_cache[ cCache ] = y1;

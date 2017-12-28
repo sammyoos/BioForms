@@ -35,10 +35,13 @@ process.
 
 ## To run...
 
-1. install the go language
-1. download the source code from github
-1. `go run evolution.go webserver.go`
+1. go to (https://sammyoos.github.io/BioForms/)
 
 ## ...and finally
 aside from many BioForms that look like deer (too many to count), this is the next best animal I've seen:
+
+# Learnings
+
+## Javascript : 
+
 
