@@ -133,8 +133,10 @@ function drawBioMorph( ctx, gene, bar ) {
          branchOffset = gene.updateOffset(branchOffset);
          stemColor = gene.updateColor(stemColor);
 
-         window.requestAnimationFrame( iterationGenerator( iter, x1, y1, stemLength, branchAngle, 0 - branchDelta, branchOffset, stemColor ));
-         window.requestAnimationFrame( iterationGenerator( iter, x1, y1, stemLength, branchAngle, 0 + branchDelta, branchOffset, stemColor ));
+         // window.requestAnimationFrame( iterationGenerator( iter, x1, y1, stemLength, branchAngle, 0 - branchDelta, branchOffset, stemColor ));
+         // window.requestAnimationFrame( iterationGenerator( iter, x1, y1, stemLength, branchAngle, 0 + branchDelta, branchOffset, stemColor ));
+         setTimeout( iterationGenerator( iter, x1, y1, stemLength, branchAngle, 0 - branchDelta, branchOffset, stemColor ), 5 );
+         setTimeout( iterationGenerator( iter, x1, y1, stemLength, branchAngle, 0 + branchDelta, branchOffset, stemColor ), 5 );
       });
    }
 }
