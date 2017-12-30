@@ -76,23 +76,9 @@ class Genes {
 
 function main() {
    let url = new URL(window.location.href);
-   let results = url.searchParams.get("y");
+   if( drawZoom( url )) return;
 
-   if (results) {
-      let parentGene = Genes.generateFromString(decodeURIComponent(results));
-      let ctx = setupContext("child_0", parentGene.toString(), 3);
-      if (!ctx) return;
-
-      document.getElementById( "child_0_exp" ).style.display = "none";
-      let divs = document.getElementsByClassName( "alt" );
-      for( let d=0; d<divs.length; ++d ) 
-         divs[d].style.display = "none";
-
-      drawBioMorph(ctx, parentGene);
-      return;
-   }
-
-   results = url.searchParams.get("x");
+   let results = url.searchParams.get("x");
    let parentGene = Genes.generateFromString(decodeURIComponent(results));
 
    var numCharacteristics = parentGene.Traits.length;
@@ -101,7 +87,47 @@ function main() {
       let ctx = setupContext("child_" + i, child.toString(), 1);
       if (!ctx) return;
 
-      drawBioMorph(ctx, child);
+      drawBioMorph( ctx, child );
+   }
+}
+
+function drawBioMorph( ctx, gene ) {
+   window.requestAnimationFrame( 
+      iterationGenerator( 
+         gene.Traits[ITERATIONS],      /* total number of iterations */
+         ctx.canvas.width / 2,         /* initial x position */
+         ctx.canvas.height / 2,        /* initial y position */
+         gene.Traits[STEM_LENGTH] + 3, /* initial stem length */
+         Math.PI / 5,                  /* initial angle/orientation of the BioMorph */
+         Math.PI / 3,                  /* initial angle of seperation from the main stem for the branches */
+         gene.Traits[BRANCH_OFFSET],
+         gene.Traits[BRANCH_COLOR]     /* initial color (offset into the color array) */
+      ));
+
+   /* using ctx and gene as locally global variables */
+   function iterationGenerator( iter, x0, y0, stemLength, branchAngle, branchDelta, branchOffset, stemColor ) {
+      return( function ( timeStamp ) {
+         // console.log( "iterationGenerator: iter="+iter+", x="+x0+",y="+y0+", col="+stemColor );
+         branchAngle += branchDelta;
+         let x1 = x0 + stemLength * Math.cos( branchAngle )
+         let y1 = y0 + stemLength * Math.sin( branchAngle )
+
+         ctx.strokeStyle = RED_COLORS[stemColor];
+         ctx.beginPath();
+         ctx.moveTo( x0, y0 );
+         ctx.lineTo( x1, y1 );
+         ctx.stroke();
+
+         if( --iter <= 0 ) return;
+
+         stemLength = gene.updateStem(stemLength);
+         branchDelta = gene.updateRotation(branchDelta);
+         branchOffset = gene.updateOffset(branchOffset);
+         stemColor = gene.updateColor(stemColor);
+
+         window.requestAnimationFrame( iterationGenerator( iter, x1, y1, stemLength, branchAngle, 0 - branchDelta, branchOffset, stemColor ));
+         window.requestAnimationFrame( iterationGenerator( iter, x1, y1, stemLength, branchAngle, 0 + branchDelta, branchOffset, stemColor ));
+      });
    }
 }
 
@@ -124,85 +150,23 @@ function setupContext(id, description, factor) {
    return ctx;
 }
 
-function drawBioMorph(ctx, gene) {
-   let totalIterations = gene.Traits[ITERATIONS];
-   if (totalIterations <= 0) return; 
+function drawZoom( url ) {
+   let results = url.searchParams.get("y");
 
-   // cache the angle, x, and y locations of each endpoint
-   // important to note that each iteration uses double the cache of it's parent
-   // this enables us to actually use the array to read and write at the same time
-   // we read the parent entry from the mid of the array
-   // and the child entry get's written to the end of the array
-   // it is *very* important to always read first and write second
-   let a_cache = new Array( 2 ** totalIterations );
-   let x_cache = new Array( 2 ** totalIterations );
-   let y_cache = new Array( 2 ** totalIterations );
+   if (results) {
+      let gene = Genes.generateFromString(decodeURIComponent(results));
+      let ctx = setupContext("child_0", gene.toString(), 3);
+      if (!ctx) return true;
 
-   let pCache = 0; // parent cache location (retreival)
-   let cCache = 1; // child cache location (storage)
-   let szCache = 2; // size of the virtual cache
-   let iter = 0;
+      document.getElementById( "child_0_exp" ).style.display = "none";
+      let divs = document.getElementsByClassName( "alt" );
+      for( let d=0; d<divs.length; ++d ) 
+         divs[d].style.display = "none";
 
-   let stemLength = gene.Traits[STEM_LENGTH] + 3;
-   let branchDelta = Math.PI / 3;
-   let branchOffset = gene.Traits[BRANCH_OFFSET];
-   let stemColor = gene.Traits[BRANCH_COLOR];
-
-   a_cache[0] = Math.PI / 5;
-   x_cache[0] = ctx.canvas.width / 2;
-   y_cache[0] = ctx.canvas.height / 2;
-
-   // base iteration draws the original circle
-   for( ;; ) {
-      drawIteration();
-      if( ++iter>=totalIterations ) break;
-
-      stemLength = gene.updateStem(stemLength);
-      branchDelta = gene.updateRotation(branchDelta);
-      branchOffset = gene.updateOffset(branchOffset);
-      stemColor = gene.updateColor(stemColor);
-
-      pCache = szCache - 1;  // set to midpoint of next cache size
-      szCache *= 2;
-      cCache = szCache -1;
+      drawBioMorph( ctx, gene );
+      return true;
    }
 
-   return;
-
-   function drawIteration() {
-      let x0, y0;
-
-      for( let branch=pCache; branch >= 0; --branch ) {
-         x0 = x_cache[ pCache ]
-         y0 = y_cache[ pCache ]
-
-         for( let leftRight = -1; leftRight <= 1; leftRight += 2 ) {
-            let cAngle = a_cache[ pCache ] + leftRight * branchDelta;
-            let x1 = x0 + stemLength * Math.cos( cAngle )
-            let y1 = y0 + stemLength * Math.sin( cAngle )
-            a_cache[ cCache ] = cAngle;
-
-            window.requestAnimationFrame( drawGenerator( ctx, x0, y0, x1, y1, stemColor ));
-            // setTimeout( drawGenerator( ctx, x0, y0, x1, y1, stemColor ), 10 );
-
-            x_cache[ cCache ] = x1;
-            y_cache[ cCache ] = y1;
-            cCache -= 1;
-         }
-
-         pCache -= 1;
-      }
-      return;
-   }
-}
-
-function drawGenerator( ctx, x0, y0, x1, y1, stemColor ) {
-   return( function( timestamp ) {
-      ctx.strokeStyle = RED_COLORS[stemColor];
-      ctx.beginPath();
-      ctx.moveTo( x0, y0 );
-      ctx.lineTo( x1, y1 );
-      ctx.stroke();
-   });
+   return false;
 }
 // vim: set et sw=3 ts=3:
