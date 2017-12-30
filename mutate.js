@@ -83,18 +83,24 @@ function main() {
 
    var numCharacteristics = parentGene.Traits.length;
    for (let i = 0; i < numCharacteristics; ++i) {
+      let bar = document.getElementById("child_"+i+"_bar");
       let child = parentGene.reproduce(i);
       let ctx = setupContext("child_" + i, child.toString(), 1);
       if (!ctx) return;
 
-      drawBioMorph( ctx, child );
+      drawBioMorph( ctx, child, bar );
    }
 }
 
-function drawBioMorph( ctx, gene ) {
+function drawBioMorph( ctx, gene, bar ) {
+   let totalIterations = gene.Traits[ITERATIONS];
+   let totalTicks = 2 ** (totalIterations) - 1;
+   let tickIncrement = 100 / totalTicks;
+   let tick = 0.0;
+
    window.requestAnimationFrame( 
       iterationGenerator( 
-         gene.Traits[ITERATIONS],      /* total number of iterations */
+         totalIterations,              /* total number of iterations */
          ctx.canvas.width / 2,         /* initial x position */
          ctx.canvas.height / 2,        /* initial y position */
          gene.Traits[STEM_LENGTH] + 3, /* initial stem length */
@@ -118,6 +124,8 @@ function drawBioMorph( ctx, gene ) {
          ctx.lineTo( x1, y1 );
          ctx.stroke();
 
+         tick += tickIncrement;
+         bar.style.width = Math.round( tick ) + "%";
          if( --iter <= 0 ) return;
 
          stemLength = gene.updateStem(stemLength);
@@ -154,6 +162,7 @@ function drawZoom( url ) {
    let results = url.searchParams.get("y");
 
    if (results) {
+      let bar = document.getElementById("child_0_bar");
       let gene = Genes.generateFromString(decodeURIComponent(results));
       let ctx = setupContext("child_0", gene.toString(), 3);
       if (!ctx) return true;
@@ -163,7 +172,7 @@ function drawZoom( url ) {
       for( let d=0; d<divs.length; ++d ) 
          divs[d].style.display = "none";
 
-      drawBioMorph( ctx, gene );
+      drawBioMorph( ctx, gene, bar );
       return true;
    }
 
